@@ -10,7 +10,7 @@
 	</appender>
 
 	<appender name="FILE" class="ch.qos.logback.core.FileAppender">
-		<file>ocr-selfie.log</file>
+		<file>application.log</file>
 		<append>true</append>
 		<!-- set immediateFlush to false for much higher logging throughput -->
 		<immediateFlush>true</immediateFlush>

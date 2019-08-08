@@ -1,5 +1,13 @@
 package com.example;
 
+import java.net.URL;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.Persistence;
+
 import org.jboss.resteasy.core.ResteasyDeploymentImpl;
 import org.jboss.resteasy.plugins.server.undertow.UndertowJaxrsServer;
 import org.jboss.resteasy.spi.ResteasyDeployment;
@@ -16,14 +24,22 @@ import io.undertow.servlet.api.ServletInfo;
 
 public class Launcher {
 	
-	public static void main(String[] args) {
+	final String APPLICATION_CLASS = "com.example.application.ExampleApplication";
+	final String BIND_HOST = "localhost";
+	final int BIND_PORT = 8080;
 	
-		final String APPLICATION_CLASS = "com.example.application.ExampleApplication";
-		final String BIND_HOST = "localhost";
-		final int BIND_PORT = 8080;
-		
-		final String CDI_INJECTION_FACTORY = "org.jboss.resteasy.cdi.CdiInjectorFactory";
-		final String RESTEASY_SERVLET_NAME = "ResteasyServlet";
+	final String CDI_INJECTION_FACTORY = "org.jboss.resteasy.cdi.CdiInjectorFactory";
+	final String RESTEASY_SERVLET_NAME = "ResteasyServlet";
+	
+	final String PU_NAME = "my-persistence-unit";
+	
+	private Map<String, Object> servletContextAttributes;
+	
+	public static void main(String[] args) {
+		new Launcher().launch();
+	}
+
+	private void launch() {
 		
 		UndertowJaxrsServer server=new UndertowJaxrsServer();
 
@@ -37,7 +53,10 @@ public class Launcher {
 				.setContextPath("/example")
 				.setClassLoader(Launcher.class.getClassLoader())
 				.addListener(Servlets.listener(Listener.class));
-				//.setExceptionHandler(new ExceptionHandler());
+		
+		this.servletContextAttributes = deploymentBuilder.getServletContextAttributes();
+		
+		//.setExceptionHandler(new ExceptionHandler());
 				
 		//ServletInfo restEasyServlet = deploymentBuilder.getServlets().get(RESTEASY_SERVLET_NAME);
 		
@@ -52,5 +71,15 @@ public class Launcher {
 		DeploymentManager deploymentManager = server.getManager();
 		System.out.println("-- APPLICATION "+deploymentManager.getState());
 
+		setUpPersistenceContext().ifPresent(emf -> {
+			this.servletContextAttributes.put("javax.persistence.EntityManagerFactory", emf);
+		});
+	}
+
+	private Optional<EntityManagerFactory> setUpPersistenceContext() {
+		
+		URL persistenceContext = Launcher.class.getResource("/META-INF/persistence.xml");
+		if(Objects.isNull(persistenceContext)) return Optional.empty();		
+		return Optional.of(Persistence.createEntityManagerFactory(PU_NAME));
 	}
 }
