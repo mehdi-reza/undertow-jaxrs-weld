@@ -12,6 +12,8 @@ import org.jboss.resteasy.core.ResteasyDeploymentImpl;
 import org.jboss.resteasy.plugins.server.undertow.UndertowJaxrsServer;
 import org.jboss.resteasy.spi.ResteasyDeployment;
 import org.jboss.weld.environment.servlet.Listener;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.example.application.ExampleApplication;
 
@@ -32,8 +34,8 @@ public class Launcher {
 	final String RESTEASY_SERVLET_NAME = "ResteasyServlet";
 	
 	final String PU_NAME = "my-persistence-unit";
-	
-	private Map<String, Object> servletContextAttributes;
+		
+	final Logger logger = LoggerFactory.getLogger(Launcher.class);
 	
 	public static void main(String[] args) {
 		new Launcher().launch();
@@ -54,32 +56,31 @@ public class Launcher {
 				.setClassLoader(Launcher.class.getClassLoader())
 				.addListener(Servlets.listener(Listener.class));
 		
-		this.servletContextAttributes = deploymentBuilder.getServletContextAttributes();
-		
-		//.setExceptionHandler(new ExceptionHandler());
-				
 		//ServletInfo restEasyServlet = deploymentBuilder.getServlets().get(RESTEASY_SERVLET_NAME);
 		
 		Undertow.Builder undertowBuilder = Undertow.builder()
 				.addHttpListener(BIND_PORT, BIND_HOST);
 
 		server.start(undertowBuilder);
+
+		setUpPersistenceContext().ifPresent(emf -> {
+			deploymentBuilder.getServletContextAttributes().put("javax.persistence.EntityManagerFactory", emf);
+		});
 		
-		System.out.println("-- BEGINNING DEPLOYMENT --");
+		logger.info("-- BEGINNING DEPLOYMENT --");
 		server.deploy(deploymentBuilder);
 
 		DeploymentManager deploymentManager = server.getManager();
-		System.out.println("-- APPLICATION "+deploymentManager.getState());
-
-		setUpPersistenceContext().ifPresent(emf -> {
-			this.servletContextAttributes.put("javax.persistence.EntityManagerFactory", emf);
-		});
+		logger.info("-- APPLICATION "+deploymentManager.getState());
 	}
 
 	private Optional<EntityManagerFactory> setUpPersistenceContext() {
 		
 		URL persistenceContext = Launcher.class.getResource("/META-INF/persistence.xml");
-		if(Objects.isNull(persistenceContext)) return Optional.empty();		
+		if(Objects.isNull(persistenceContext)) return Optional.empty();
+		
+		logger.info("-- INITIALIZING JPA ---");
+
 		return Optional.of(Persistence.createEntityManagerFactory(PU_NAME));
 	}
 }
