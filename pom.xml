@@ -47,6 +47,20 @@
 			<version>5.4.4.Final</version>
 		</dependency>
 
+		<!-- jndi -->
+		<dependency>
+			<groupId>org.jboss.naming</groupId>
+			<artifactId>jnpserver</artifactId>
+			<version>5.0.5.Final-redhat-1</version>
+		</dependency>
+
+		<!-- jdbc datasource -->
+		<dependency>
+			<groupId>com.zaxxer</groupId>
+			<artifactId>HikariCP</artifactId>
+			<version>3.3.1</version>
+		</dependency>
+
 		<!-- mysql -->
 		<dependency>
 			<groupId>mysql</groupId>
@@ -63,6 +77,11 @@
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>jcl-over-slf4j</artifactId>
+			<version>1.7.26</version>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
 			<version>1.7.26</version>
 		</dependency>
 	</dependencies>

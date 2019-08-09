@@ -7,13 +7,16 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
+import javax.inject.Inject;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
+import javax.sql.DataSource;
 
 import org.jboss.resteasy.core.ResteasyDeploymentImpl;
 import org.jboss.resteasy.plugins.server.undertow.UndertowJaxrsServer;
 import org.jboss.resteasy.spi.ResteasyDeployment;
 import org.jboss.weld.environment.servlet.Listener;
+import org.jnp.server.NamingBeanImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,9 +67,15 @@ public class Launcher {
 				.addHttpListener(BIND_PORT, BIND_HOST);
 
 		logger.info("~~~ STARTING SERVER");
-		
-		
+
 		server.start(undertowBuilder);
+		
+		logger.info("~~~ STARTING LOCAL JNDI SERVER");
+		try {
+			new NamingBeanImpl().start();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 
 		setUpPersistenceContext().ifPresent(emf -> {
 			deploymentBuilder.getServletContextAttributes().put("javax.persistence.EntityManagerFactory", emf);
@@ -82,6 +91,9 @@ public class Launcher {
 		logger.info("~~~ READY TO SERVE");
 	}
 
+	@Inject
+	DataSource dataSource;
+	
 	private Optional<EntityManagerFactory> setUpPersistenceContext() {
 		
 		URL persistenceContext = Launcher.class.getResource("/META-INF/persistence.xml");
