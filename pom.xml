@@ -12,11 +12,17 @@
 	</properties>
 
 	<dependencies>
-
 		<!-- resteasy -->
 		<dependency>
 			<groupId>org.jboss.resteasy</groupId>
 			<artifactId>resteasy-cdi</artifactId>
+			<version>4.2.0.Final</version>
+		</dependency>
+
+		<!-- json binding -->
+		<dependency>
+			<groupId>org.jboss.resteasy</groupId>
+			<artifactId>resteasy-json-binding-provider</artifactId>
 			<version>4.2.0.Final</version>
 		</dependency>
 

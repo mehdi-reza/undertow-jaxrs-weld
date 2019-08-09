@@ -1,6 +1,8 @@
 package com.example;
 
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -61,17 +63,23 @@ public class Launcher {
 		Undertow.Builder undertowBuilder = Undertow.builder()
 				.addHttpListener(BIND_PORT, BIND_HOST);
 
+		logger.info("~~~ STARTING SERVER");
+		
+		
 		server.start(undertowBuilder);
 
 		setUpPersistenceContext().ifPresent(emf -> {
 			deploymentBuilder.getServletContextAttributes().put("javax.persistence.EntityManagerFactory", emf);
 		});
 		
-		logger.info("-- BEGINNING DEPLOYMENT --");
+		logger.info("~~~ BEGINNING DEPLOYMENT");
 		server.deploy(deploymentBuilder);
-
+		logger.info("Configured Listeners: {}", deploymentBuilder.getListeners());
+		
 		DeploymentManager deploymentManager = server.getManager();
-		logger.info("-- APPLICATION "+deploymentManager.getState());
+		logger.info("~~~ DEPLOYMENT {}", deploymentManager.getState());		
+		
+		logger.info("~~~ READY TO SERVE");
 	}
 
 	private Optional<EntityManagerFactory> setUpPersistenceContext() {
@@ -79,7 +87,7 @@ public class Launcher {
 		URL persistenceContext = Launcher.class.getResource("/META-INF/persistence.xml");
 		if(Objects.isNull(persistenceContext)) return Optional.empty();
 		
-		logger.info("-- INITIALIZING JPA ---");
+		logger.info("~~~ INITIALIZING JPA");
 
 		return Optional.of(Persistence.createEntityManagerFactory(PU_NAME));
 	}
