@@ -4,7 +4,6 @@ import java.net.URL;
 import java.util.Objects;
 import java.util.Optional;
 
-import javax.inject.Inject;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 import javax.persistence.EntityManagerFactory;
@@ -39,20 +38,20 @@ public class Launcher {
 		
 	final Logger logger = LoggerFactory.getLogger(Launcher.class);
 	
-	private ApplicationProperties applicationProperties;
+	private Server.Properties serverProperties;
 	
 	public static void main(String[] args) {
 		new Launcher().launch();
 	}
 
 	public Launcher() {
-		applicationProperties=new ApplicationProperties();
+		serverProperties=new Server.Properties();
 	}
 	
 	private void launch() {
 		
-		String contextPath = Optional.ofNullable(applicationProperties.getProperty("application.context.path")).orElse("/");
-		String deploymentName = Optional.ofNullable(applicationProperties.getProperty("application.deployment.name")).orElse("no-deployment-name");
+		String contextPath = serverProperties.getProperty("application.context.path").orElse("/");
+		String deploymentName = serverProperties.getProperty("application.deployment.name").orElse("no-deployment-name");
 		
 		UndertowJaxrsServer server=new UndertowJaxrsServer();
 
@@ -114,25 +113,13 @@ public class Launcher {
 		
 		HikariConfig config=new HikariConfig();
 		
-		config.setMaximumPoolSize(new Integer(applicationProperties.getProperty("datasource.connections.max")));
-		config.setMinimumIdle(new Integer(applicationProperties.getProperty("datasource.connections.min")));
-		config.setJdbcUrl(applicationProperties.getProperty("datasource.jdbc.url"));
-		config.setDriverClassName(applicationProperties.getProperty("datasource.driver"));
-		config.setUsername(applicationProperties.getProperty("datasource.username"));
-		config.setPassword(applicationProperties.getProperty("datasource.password"));
+		config.setMaximumPoolSize(new Integer(serverProperties.getProperty("datasource.connections.max").get()));
+		config.setMinimumIdle(new Integer(serverProperties.getProperty("datasource.connections.min").get()));
+		config.setJdbcUrl(serverProperties.getProperty("datasource.jdbc.url").get());
+		config.setDriverClassName(serverProperties.getProperty("datasource.driver").get());
+		config.setUsername(serverProperties.getProperty("datasource.username").get());
+		config.setPassword(serverProperties.getProperty("datasource.password").get());
 		
-		/*
-		 * dataSource.cachePrepStmts=true
-		 * dataSource.prepStmtCacheSize=250
-		 * dataSource.prepStmtCacheSqlLimit=2048
-		 * dataSource.useServerPrepStmts=true
-		 * dataSource.useLocalSessionState=true
-		 * dataSource.rewriteBatchedStatements=true
-		 * dataSource.cacheResultSetMetadata=true
-		 * dataSource.cacheServerConfiguration=true
-		 * dataSource.elideSetAutoCommits=true
-		 * dataSource.maintainTimeStats=false
-		 */
 		config.addDataSourceProperty("cachePrepStmts", "true");
 		config.addDataSourceProperty("prepStmtCacheSize", "250");
 		config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
@@ -143,12 +130,6 @@ public class Launcher {
 		config.addDataSourceProperty("cacheServerConfiguration", "true");
 		config.addDataSourceProperty("elideSetAutoCommits", "true");
 		config.addDataSourceProperty("maintainTimeStats", "true");
-
-		/*
-		 * Context initContext = new InitialContext();
-		 * initContext.createSubcontext(DatabaseClass.DB_JNDI_NAME);
-		 * initContext.rebind(DatabaseClass.DB_JNDI_NAME, ds);
-		 */
 	     
 		return new HikariDataSource(config);
 	}
