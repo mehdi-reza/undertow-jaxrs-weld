@@ -22,7 +22,9 @@
 		</encoder>
 	</appender>
 
-	<root level="debug">
+	<logger name="com.example" level="debug"/>
+	
+	<root level="info">
 		<appender-ref ref="STDOUT" />		
 	</root>
 </configuration>

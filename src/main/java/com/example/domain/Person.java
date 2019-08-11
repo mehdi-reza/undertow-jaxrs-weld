@@ -1,5 +1,6 @@
 package com.example.domain;
 
+import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
@@ -12,7 +13,9 @@ public class Person {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.AUTO)
-	private Integer id;	
+	private Integer id;
+	
+	@Column(unique = true)
 	private String fullName;
 	
 	public Integer getId() {
