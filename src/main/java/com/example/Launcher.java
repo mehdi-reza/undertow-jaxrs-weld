@@ -1,8 +1,13 @@
 package com.example;
 
 import java.net.URL;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Collections;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
@@ -10,10 +15,13 @@ import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
 import javax.sql.DataSource;
 
+import org.hibernate.jpa.boot.internal.PersistenceXmlParser;
 import org.jboss.resteasy.core.ResteasyDeploymentImpl;
 import org.jboss.resteasy.plugins.server.undertow.UndertowJaxrsServer;
 import org.jboss.resteasy.spi.ResteasyDeployment;
+import org.jboss.weld.bootstrap.WeldBootstrap;
 import org.jboss.weld.environment.servlet.Listener;
+import org.jboss.weld.manager.BeanManagerImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,24 +36,32 @@ import io.undertow.servlet.api.DeploymentManager;
 public class Launcher {
 	
 	final String APPLICATION_CLASS = "com.example.application.ExampleApplication";
-	final String BIND_HOST = "localhost";
-	final int BIND_PORT = 8080;
+
+	final String BIND_HOST;
+	final int BIND_PORT;
 	
 	final String CDI_INJECTION_FACTORY = "org.jboss.resteasy.cdi.CdiInjectorFactory";
 	final String RESTEASY_SERVLET_NAME = "ResteasyServlet";
 	
-	final String PU_NAME = "my-persistence-unit";
+	final String PU_NAME;
 		
-	final Logger logger = LoggerFactory.getLogger(Launcher.class);
+	final static Logger logger = LoggerFactory.getLogger(Launcher.class);
 	
-	private Server.Properties serverProperties;
+	private Service.Properties serverProperties;
 	
 	public static void main(String[] args) {
+		long now = System.currentTimeMillis();
 		new Launcher().launch();
+		long millis = Duration.between(Instant.ofEpochMilli(now), Instant.now()).toMillis();
+		
+		logger.info("~~~ Startup time {} seconds", millis/1000D);
 	}
 
 	public Launcher() {
-		serverProperties=new Server.Properties();
+		serverProperties=new Service.Properties();
+		this.PU_NAME = serverProperties.getProperty("persistence.unit.name").get();
+		this.BIND_HOST = serverProperties.getProperty("service.host").orElse("localhost");
+		this.BIND_PORT = new Integer(serverProperties.getProperty("service.port").orElse("8080"));
 	}
 	
 	private void launch() {
@@ -74,20 +90,8 @@ public class Launcher {
 		logger.info("~~~ STARTING SERVER");
 
 		server.start(undertowBuilder);
-		
-		logger.info("~~~ SETTING UP JNDI DATASOURCE");
-		InitialContext ic;
-		try {
-			ic = new InitialContext();
-			ic.createSubcontext("java:/comp/env/jdbc");
-			ic.bind("java:/comp/env/jdbc/datasource", getDataSource());
-		} catch (NamingException e) {
-			throw new RuntimeException(e);
-		}
 
-		setUpPersistenceContext().ifPresent(emf -> {
-			deploymentBuilder.getServletContextAttributes().put("javax.persistence.EntityManagerFactory", emf);
-		});
+		setUpPersistenceContext();
 		
 		logger.info("~~~ BEGINNING DEPLOYMENT");
 		server.deploy(deploymentBuilder);
@@ -99,18 +103,20 @@ public class Launcher {
 		logger.info("~~~ READY TO SERVE");
 	}
 
-	private Optional<EntityManagerFactory> setUpPersistenceContext() {
-		
-		URL persistenceContext = Launcher.class.getResource("/META-INF/persistence.xml");
-		if(Objects.isNull(persistenceContext)) return Optional.empty();
-		
-		logger.info("~~~ INITIALIZING JPA");
+	private void setUpPersistenceContext() {
 
-		return Optional.of(Persistence.createEntityManagerFactory(PU_NAME));
+		URL persistenceContext = Launcher.class.getResource("/META-INF/persistence.xml");
+		if(Objects.isNull(persistenceContext)) return;
+
+		setupDataSource();
+		logger.info("~~~ INITIALIZING JPA");
+		Persistence.createEntityManagerFactory(PU_NAME);
 	}
 	
-	private DataSource getDataSource() {
-		
+	private void setupDataSource() {
+
+		logger.info("~~~ SETTING UP JNDI DATASOURCE");
+
 		HikariConfig config=new HikariConfig();
 		
 		config.setMaximumPoolSize(new Integer(serverProperties.getProperty("datasource.connections.max").get()));
@@ -130,7 +136,14 @@ public class Launcher {
 		config.addDataSourceProperty("cacheServerConfiguration", "true");
 		config.addDataSourceProperty("elideSetAutoCommits", "true");
 		config.addDataSourceProperty("maintainTimeStats", "true");
-	     
-		return new HikariDataSource(config);
+	    
+		InitialContext ic;
+		try {
+			ic = new InitialContext();
+			ic.createSubcontext("java:/comp/env/jdbc");
+			ic.bind("java:/comp/env/jdbc/datasource", new HikariDataSource(config));
+		} catch (NamingException e) {
+			throw new RuntimeException(e);
+		}
 	}
 }

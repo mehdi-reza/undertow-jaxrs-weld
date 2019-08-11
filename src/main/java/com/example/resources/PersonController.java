@@ -10,19 +10,20 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
+import com.example.domain.Person;
 import com.example.pojos.Pojo1;
-import com.example.service.Service1;
+import com.example.service.PersonService;
 
-@Path("res1")
-public class Resource1 {
+@Path("person")
+public class PersonController {
 
-	@Inject Service1 service1;
+	@Inject PersonService personService;
 	
-	@Path("echo")
+	@Path("create")
 	@GET
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
-	public Pojo1 echo(@Context ServletContext context, @QueryParam("input") String input) {
-		return service1.echo(input);
+	public Person addPerson(@Context ServletContext context, @QueryParam("fullName") String fullName) {
+		return personService.create(fullName);
 	}
 }

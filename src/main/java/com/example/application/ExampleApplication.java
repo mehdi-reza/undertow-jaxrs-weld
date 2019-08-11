@@ -9,7 +9,7 @@ import javax.ws.rs.ApplicationPath;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.ext.Provider;
 
-import com.example.resources.Resource1;
+import com.example.resources.PersonController;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
@@ -21,7 +21,7 @@ public class ExampleApplication extends Application {
 	@Override
 	public Set<Class<?>> getClasses() {
 		Set<Class<?>> set = new HashSet<Class<?>>();
-		set.add(Resource1.class);
+		set.add(PersonController.class);
 		return set;
 	}
 }
