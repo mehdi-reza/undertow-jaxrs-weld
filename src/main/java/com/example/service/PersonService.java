@@ -16,7 +16,8 @@ public class PersonService extends TxSupport {
 
 	public Person create(String fullName) {
 
-		Consumer<EntityManager> chain = new Consumer<EntityManager>() {
+		// 1st transaction
+		Consumer<EntityManager> _1strx = new Consumer<EntityManager>() {
 			@Override
 			public void accept(EntityManager em) {
 				Person person = new Person();
@@ -24,29 +25,53 @@ public class PersonService extends TxSupport {
 				em.persist(person);
 			}
 		}.andThen(em -> {
-			commit(false); // entity manager is not closed, so chain2 (below) call be called in another transaction
+			/*
+			 * entity manager is not closed, so chain2 (below) call be called in another
+			 * transaction
+			 */
+			
+			// this is unsafe if em.persist throws any exception, it should be in try-finally block
+			commit(false);
 		});
-		
-		Consumer<EntityManager> chain2 = new Consumer<EntityManager>() {
+
+		tx(Transactional.TxType.REQUIRED, _1strx);
+
+		// 2nd transaction
+		Consumer<EntityManager> _2ndrx = new Consumer<EntityManager>() {
 			@Override
 			public void accept(EntityManager em) {
 				Person person = new Person();
-				person.setFullName(fullName+" bhai");
+				person.setFullName(fullName + " .");
 				em.persist(person);
 			}
 		}.andThen(em -> {
-			commit(true);
+			// this is unsafe if em.persist throws any exception, it should be in try-finally block
+			commit(false);
 		});
 
-		tx(Transactional.TxType.REQUIRED, chain);
-		tx(Transactional.TxType.REQUIRED, chain2);
+		tx(Transactional.TxType.REQUIRED, _2ndrx);
 		
+		// example with try-finally block
+
+		try {
+			tx(Transactional.TxType.REQUIRED, em -> {
+				Person person = new Person();
+				person.setFullName(fullName + " ..");
+				em.persist(person);
+			});
+		} finally {
+			commit(false);
+		}
 		
-		/*
-		 * txCloseable(Transactional.TxType.REQUIRED, (closeable, em) -> {
-		 * try(CloseableEntityManager c = closeable) { //Person p2= new Person();
-		 * //p2.setFullName(fullName); em.persist(person); } });
-		 */
+
+		// 3rd transaction
+		txCloseable(Transactional.TxType.REQUIRED, (closeable, em) -> {
+			try (CloseableEntityManager c = closeable) {
+				Person person = new Person();
+				person.setFullName(fullName+ " ...");
+				em.persist(person);
+			}
+		});
 
 		return null;
 	}
