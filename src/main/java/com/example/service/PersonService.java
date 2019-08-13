@@ -21,7 +21,7 @@ public class PersonService {
 		person.setFullName(fullName);
 
 		try {
-			trx.doWithEntityManager(Transactional.TxType.REQUIRED, em -> em.persist(person));			
+			trx.doWithEntityManager(Transactional.TxType.SUPPORTS, em -> em.persist(person));
 		} catch(PersistenceException e) {
 			logger.info("Exception", e);
 		}

@@ -14,6 +14,7 @@ import javax.naming.NamingException;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
 import javax.sql.DataSource;
+import javax.transaction.Transactional;
 
 import org.hibernate.jpa.boot.internal.PersistenceXmlParser;
 import org.jboss.resteasy.core.ResteasyDeploymentImpl;
@@ -50,6 +51,7 @@ public class Launcher {
 	private Service.Properties serverProperties;
 	
 	public static void main(String[] args) {
+		
 		long now = System.currentTimeMillis();
 		new Launcher().launch();
 		long millis = Duration.between(Instant.ofEpochMilli(now), Instant.now()).toMillis();

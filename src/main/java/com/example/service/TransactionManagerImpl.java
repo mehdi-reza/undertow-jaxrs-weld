@@ -15,6 +15,7 @@ import javax.persistence.EntityManagerFactory;
 import javax.persistence.PersistenceException;
 import javax.persistence.RollbackException;
 import javax.transaction.Transactional;
+import javax.transaction.TransactionalException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -102,11 +103,11 @@ public final class TransactionManagerImpl implements TransactionManager {
 			break;
 		case MANDATORY:
 			if (!em.getTransaction().isActive())
-				throw new RuntimeException("Transaction is mandatory to be active");
+				throw new TransactionalException("Transaction is mandatory to be active", null);
 			break;
 
 		default:
-			throw new RuntimeException("Not supported..");
+			throw new RuntimeException(String.format("Transactional scope \"%s\" not supported", scope));
 		}
 		
 		return em;
