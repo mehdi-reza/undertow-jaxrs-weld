@@ -1,8 +1,7 @@
 package com.example.service;
 
-import java.util.function.Consumer;
-
-import javax.persistence.EntityManager;
+import javax.inject.Inject;
+import javax.persistence.PersistenceException;
 import javax.transaction.Transactional;
 
 import org.slf4j.Logger;
@@ -10,69 +9,31 @@ import org.slf4j.LoggerFactory;
 
 import com.example.domain.Person;
 
-public class PersonService extends TxSupport {
+public class PersonService {
 
 	Logger logger = LoggerFactory.getLogger(PersonService.class);
 
+	@Inject TransactionManager trx;
+	
 	public Person create(String fullName) {
 
-		// 1st transaction
-		Consumer<EntityManager> _1strx = new Consumer<EntityManager>() {
-			@Override
-			public void accept(EntityManager em) {
-				Person person = new Person();
-				person.setFullName(fullName);
-				em.persist(person);
-			}
-		}.andThen(em -> {
-			/*
-			 * entity manager is not closed, so chain2 (below) call be called in another
-			 * transaction
-			 */
-			
-			// this is unsafe if em.persist throws any exception, it should be in try-finally block
-			commit(false);
-		});
-
-		tx(Transactional.TxType.REQUIRED, _1strx);
-
-		// 2nd transaction
-		Consumer<EntityManager> _2ndrx = new Consumer<EntityManager>() {
-			@Override
-			public void accept(EntityManager em) {
-				Person person = new Person();
-				person.setFullName(fullName + " .");
-				em.persist(person);
-			}
-		}.andThen(em -> {
-			// this is unsafe if em.persist throws any exception, it should be in try-finally block
-			commit(false);
-		});
-
-		tx(Transactional.TxType.REQUIRED, _2ndrx);
-		
-		// example with try-finally block
+		final Person person = new Person();
+		person.setFullName(fullName);
 
 		try {
-			tx(Transactional.TxType.REQUIRED, em -> {
-				Person person = new Person();
-				person.setFullName(fullName + " ..");
-				em.persist(person);
-			});
-		} finally {
-			commit(false);
+			trx.doWithEntityManager(Transactional.TxType.REQUIRED, em -> em.persist(person));			
+		} catch(PersistenceException e) {
+			logger.info("Exception", e);
 		}
 		
+		final Person person2 = new Person();
+		person2.setFullName(fullName);
+		try {
+			trx.doWithEntityManager(Transactional.TxType.REQUIRED, em -> em.persist(person2));
+		} catch(PersistenceException e) {
+			logger.info("Exception", e);
+		}
 
-		// 3rd transaction
-		txCloseable(Transactional.TxType.REQUIRED, (closeable, em) -> {
-			try (CloseableEntityManager c = closeable) {
-				Person person = new Person();
-				person.setFullName(fullName+ " ...");
-				em.persist(person);
-			}
-		});
-
-		return null;
+		return person;
 	}
 }
